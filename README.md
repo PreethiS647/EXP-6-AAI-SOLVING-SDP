@@ -1,5 +1,9 @@
 # Exp - 6(AAI) - Solving a Stochastic Grid-World Markov Decision Process Using Value Iteration and Policy Iteration
 ## By Dr. N SARAVANAN, TSML006,ASSISTANT PROFESSOR,AIML,SEC
+
+### NAME: PREETHI S
+### REG.NO: 212223230157
+
 A compact Python implementation of two dynamic-programming methods for solving a stochastic grid-world Markov decision process (MDP):
 
 - **Value Iteration**
@@ -187,6 +191,104 @@ Edit these values near the top of the script to experiment with other MDPs:
 - `epsilon` — stopping tolerance
 - `get_next_state()` — boundaries and blocked-cell behavior
 - `get_action_distribution()` / `expected_utility()` — transition dynamics
+
+## Program
+```
+import numpy as np
+rows, cols = 3, 4
+
+U = np.zeros((rows, cols))
+R = np.full((rows, cols), -0.04)
+
+R[2, 3] = 1.0  
+#R[1, 1] = -1.0  
+R[1, 3] = -1.0
+
+terminals = [(2,3), (1,3)]
+for r, c in terminals:
+    U[r, c] = R[r, c]
+
+actions = ['UP', 'DOWN', 'LEFT', 'RIGHT']
+
+def get_next_state(r, c, action):
+    if action == 'UP':    next_r, next_c = r + 1, c
+    elif action == 'DOWN': next_r, next_c = r - 1, c
+    elif action == 'LEFT': next_r, next_c = r, c - 1
+    elif action == 'RIGHT': next_r, next_c = r, c + 1
+    
+    if 0 <= next_r < rows and 0 <= next_c < cols:
+        if next_r==1 and next_c==1:
+            return r,c
+        return next_r, next_c
+    return r, c  
+
+def get_action_distribution(action):
+    if action == 'UP':    return 'UP', 'LEFT', 'RIGHT'
+    if action == 'DOWN':  return 'DOWN', 'RIGHT', 'LEFT'
+    if action == 'LEFT':  return 'LEFT', 'DOWN', 'UP'
+    if action == 'RIGHT': return 'RIGHT', 'UP', 'DOWN'
+gamma = 1.0
+epsilon = 1e-4
+
+while True:
+    U_next = np.copy(U)
+    delta = 0
+    for r in range(rows):
+        for c in range(cols):
+            if (r, c) in terminals:
+                continue
+            
+            action_values = []
+            for a in actions:
+                intended, left, right = get_action_distribution(a)
+                
+                sr_i, sc_i = get_next_state(r, c, intended)
+                sr_l, sc_l = get_next_state(r, c, left)
+                sr_r, sc_r = get_next_state(r, c, right)
+                
+                expected_utility = (0.8 * U[sr_i, sc_i] + 
+                                    0.1 * U[sr_l, sc_l] + 
+                                    0.1 * U[sr_r, sc_r])
+                action_values.append(expected_utility)
+                
+            U_next[r, c] = R[r, c] + gamma * max(action_values)
+            delta = max(delta, abs(U_next[r, c] - U[r, c]))
+            
+    U = U_next
+    if delta < epsilon: 
+        break
+policy = {}
+for r in range(rows):
+    for c in range(cols):
+        if (r, c) in terminals:
+            policy[(r, c)] = 'GOAL' if (r, c) == (2,3) else 'TRAP'
+            continue
+        best_action = None
+        best_val = -float('inf')
+        for a in actions:
+            intended, left, right = get_action_distribution(a)
+            sr_i, sc_i = get_next_state(r, c, intended)
+            sr_l, sc_l = get_next_state(r, c, left)
+            sr_r, sc_r = get_next_state(r, c, right)
+            val = 0.8 * U[sr_i, sc_i] + 0.1 * U[sr_l, sc_l] + 0.1 * U[sr_r, sc_r]
+            if val > best_val:
+                best_val = val
+                best_action = a
+        policy[(r, c)] = best_action
+
+print("Final Utility Table")
+print(np.round(np.flipud(U), 3))
+
+print("\nExtracted Policy Layout")
+p_grid = np.empty((rows, cols), dtype=object)
+for r in range(rows):
+    for c in range(cols):
+        p_grid[r, c] = policy[(r, c)]
+print(np.flipud(p_grid))
+```
+
+## Output
+<img width="386" height="188" alt="image" src="https://github.com/user-attachments/assets/fe09d1d1-65b6-41b1-86ef-24bec5eb752a" />
 
 ## Notes
 
